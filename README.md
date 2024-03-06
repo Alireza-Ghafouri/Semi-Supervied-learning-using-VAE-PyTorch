@@ -1,10 +1,8 @@
-# VAE-ResNet18-PyTorch
-A Variational Autoencoder based on the ResNet18-architecture, implemented in PyTorch.
+# Semi Supervised Representation Learning
+This is an architecture that uses a Variational Autoencoder based on the ResNet18-architecture, implemented in PyTorch.
 
-Out of the box, it works on 64x64 3-channel input, but can easily be changed to 32x32 and/or n-channel input.  
+We will change the VAE architecture a bit and add some other blocks to it.
+The goal is to do semi supervised learning using Cifar10 dataset and evaluate the performance of the model.  
 
-Instead of transposed convolutions, it uses a combination of upsampling and convolutions, as described here:  
-https://distill.pub/2016/deconv-checkerboard/
-
-The implementation of the encoder is inspired by https://github.com/kuangliu/pytorch-cifar
+The implementation of the VAE is inspired by the forked project.
 
