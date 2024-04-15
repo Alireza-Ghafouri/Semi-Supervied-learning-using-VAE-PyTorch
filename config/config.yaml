@@ -1,0 +1,38 @@
+learning:
+  num_epochs: 1
+  batch_size: 16
+  device: 'cuda:0'
+  learning_rate: 0.001
+  schd_gamma: 0.9 
+
+loss:
+  alpha: 1
+  beta: 100
+  gamma: 500
+  cont_similarity: 'cosine'
+  cont_margin: 1.0
+
+data:
+  in_channels: 3
+  num_classes: 10
+  labeled_ratio: 0.1
+
+model:
+  ResNet_Blocks: [2,2,2,2]
+  vae_latent_dim: 128
+  cls_latent_dim: 16
+  lm_hidden_dims: [64, 32] 
+
+paths:
+  weights_root: ./Weights
+  report_root: ./Reports
+
+
+# pretrained: ~
+# ckpt_save_freq: 10
+# n_samples_per_class: 100
+# train_data_path: ./data/CIFAR10/train/
+# test_data_path: ./data/CIFAR10/train/
+# load_saved_model: False
+# ckpt_load_path: False
+
