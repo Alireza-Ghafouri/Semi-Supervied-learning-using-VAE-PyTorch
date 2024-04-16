@@ -3,7 +3,6 @@ from torch import nn
 from .utils import ResNet18Enc,ResNet18Dec
 import torch.nn.functional as F
 
-
 class VAE(nn.Module):
 
     def __init__(self, z_dim):
@@ -79,7 +78,7 @@ class VAE(nn.Module):
 
 
 class LatentMapper(nn.Module):
-    def __init__(self, y_dim, z_dim, hidden_dims):
+    def __init__(self, y_dim, z_dim, hidden_dims, contrastive_margin, contrastive_similarity):
         super(LatentMapper, self).__init__()
         layers = []
         input_dim = y_dim
@@ -91,14 +90,16 @@ class LatentMapper(nn.Module):
         self.fc_layers = nn.Sequential(*layers)
         self.z_dim = z_dim
         self.z = torch.tensor([])
+        self.margin = contrastive_margin
+        self.similarity = contrastive_similarity
         
     def forward(self, y):
         self.z = self.fc_layers(y)
         return self.z
 
-    def contrastive_loss(self, labels, margin=1.0, similarity='cosine'):
+    def contrastive_loss(self, labels):
         # Compute pairwise similarity matrix
-        if similarity == 'cosine':
+        if self.similarity == 'cosine':
             similarity_matrix = F.cosine_similarity(self.z.unsqueeze(1), self.z.unsqueeze(0), dim=-1)
         else:
             raise NotImplementedError("Other similarity metrics not implemented yet")
@@ -112,16 +113,16 @@ class LatentMapper(nn.Module):
         negative_pairs = similarity_matrix * (1 - mask)
 #         print('SIMILARITY MATRIX:\n',similarity_matrix)
 #         print('MASK\n',mask)
-        loss_contrastive = torch.mean((1 - positive_pairs) + torch.clamp(negative_pairs - margin, min=0))
+        loss_contrastive = torch.mean((1 - positive_pairs) + torch.clamp(negative_pairs - self.margin, min=0))
 
         return loss_contrastive
     
 class NET(nn.Module):
-    def __init__(self, vae, latent_mapper):
+    def __init__(self, vae, latent_mapper, num_classes):
         super(NET, self).__init__()
         self.vae = vae
         self.latent_mapper = latent_mapper
-        self.classifier = nn.Linear(self.latent_mapper.z_dim, 10)  # 10 is the number of classes
+        self.classifier = nn.Linear(self.latent_mapper.z_dim, num_classes) 
 #         self.alpha = vae_loss_weight
 #         self.beta = classification_loss_weight
 #         self.gamma = contrastive_loss_weight
@@ -134,7 +135,7 @@ class NET(nn.Module):
         logits  = self.classifier(z)
         return x_hat, logits
     
-    def loss(self, x_hat, x, logits, labels, alpha=1, beta=1, gamma=1):
+    def loss(self, x_hat, x, logits, labels, alpha, beta, gamma):
         
         vae_loss = self.vae.loss(x_hat, x)
         classification_loss = nn.CrossEntropyLoss()(logits, labels)

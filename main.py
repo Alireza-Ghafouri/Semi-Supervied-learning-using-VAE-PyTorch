@@ -12,7 +12,11 @@ from torch.utils.data import DataLoader
 
 config = OmegaConf.load("config\config.yaml")
 
+os.makedirs(config.paths.weights_root, exist_ok = True)
+os.makedirs(config.paths.report_root, exist_ok = True)
+
 device = torch.device(config.learning.device)
+# print('Training is on: ', device)
 
 full_trainset = SVHNDataset(mode='train')
 testset = SVHNDataset(mode='test')
@@ -43,11 +47,14 @@ vae.to(device)
 
 latent_mapper = LatentMapper(y_dim = config.model.vae_latent_dim,
                              z_dim = config.model.cls_latent_dim,
-                             hidden_dims = config.model.lm_hidden_dims)
+                             hidden_dims = config.model.lm_hidden_dims,
+                             contrastive_margin = config.loss.contrastive_margin, 
+                             contrastive_similarity = config.loss.contrastive_similarity
+                             )
 latent_mapper.to(device)
 
 
-net = NET(vae, latent_mapper)
+net = NET(vae, latent_mapper, num_classes=config.data.num_classes)
 net.to(device)
 
 optimizer = Adam(net.parameters())
@@ -69,3 +76,5 @@ epoch_losses = train( net = net,
 plot_losses(loss_values = epoch_losses,
             PATH = os.path.join( config.paths.report_root,'supervised_training_losses.png' )
             )
+
+evaluation(net, testloader, device)

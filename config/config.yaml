@@ -9,8 +9,8 @@ loss:
   alpha: 1
   beta: 100
   gamma: 500
-  cont_similarity: 'cosine'
-  cont_margin: 1.0
+  contrastive_similarity: 'cosine'
+  contrastive_margin: 1.0
 
 data:
   in_channels: 3
