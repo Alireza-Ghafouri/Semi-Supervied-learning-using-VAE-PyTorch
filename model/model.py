@@ -138,6 +138,8 @@ class NET(nn.Module):
     def loss(self, x_hat, x, logits, labels, alpha, beta, gamma):
         
         vae_loss = self.vae.loss(x_hat, x)
+        if beta==0 and gamma==0:
+            return alpha * vae_loss
         classification_loss = nn.CrossEntropyLoss()(logits, labels)
         contrastive_loss = self.latent_mapper.contrastive_loss(labels)            
 #         print(vae_loss , classification_loss, contrastive_loss)

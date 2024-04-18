@@ -7,8 +7,8 @@ learning:
 
 loss:
   alpha: 1
-  beta: 100
-  gamma: 500
+  beta: 0
+  gamma: 0
   contrastive_similarity: 'cosine'
   contrastive_margin: 1.0
 
@@ -24,8 +24,9 @@ model:
   lm_hidden_dims: [64, 32] 
 
 paths:
-  weights_root: ./Weights
-  report_root: ./Reports
+  weights_root: ./weights
+  report_root: ./reports
+  rec_results: ./reconstruction_samples
 
 
 # pretrained: ~
