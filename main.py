@@ -4,7 +4,7 @@ from omegaconf import OmegaConf
 from model.model import VAE, LatentMapper, NET
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
-from training.training import train, plot_losses, evaluation
+from training.training import Trainer
 from dataloader.dataset import SVHNDataset
 from dataloader.utils import split_data
 from torch.utils.data import DataLoader
@@ -61,20 +61,21 @@ optimizer = Adam(net.parameters())
 scheduler = ExponentialLR(optimizer = optimizer,
                           gamma = config.learning.schd_gamma)
 
-epoch_losses = train( net = net, 
-                      dataloader = labeled_trainloader, 
-                      EPOCHS = config.learning.num_epochs, 
-                      optimizer = optimizer, 
-                      scheduler = scheduler, 
-                      device = device, 
-                      PATH =  os.path.join(config.paths.weights_root,'supervised_training_net.pth'), 
-                      alpha = config.loss.alpha, 
-                      beta  = config.loss.beta, 
-                      gamma = config.loss.gamma
+vae_trainer = Trainer(net= vae, 
+                      train_dataloader= labeled_trainloader, 
+                      test_dataloader= testloader,
+                      optimizer= optimizer, 
+                      scheduler= scheduler, 
+                      device= device
                     )
 
-plot_losses(loss_values = epoch_losses,
-            PATH = os.path.join( config.paths.report_root,'supervised_training_losses.png' )
-            )
+vae_trainer.train(num_epochs= config.learning.num_epochs,
+                  alpha= config.loss.alpha, 
+                  beta= config.loss.beta, 
+                  gamma= config.loss.gamma)
 
-evaluation(net, testloader, device)
+vae_trainer.save_loss_plot(PATH = os.path.join( config.paths.report_root,'test.png' ) )
+
+vae_trainer.show_rec_images(mean= full_trainset.mean,
+                            std= full_trainset.std
+                            )

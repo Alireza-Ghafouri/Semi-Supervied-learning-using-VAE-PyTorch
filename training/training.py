@@ -72,6 +72,7 @@ class Trainer:
         plt.title('Epoch loss values during training')
         plt.savefig(PATH)
         print('Plot saved at: ',PATH)
+        plt.close()
 
     def show_rec_images(self, mean, std, show_gt=False):
         dataiter = iter(self.test_dataloader)
@@ -83,6 +84,7 @@ class Trainer:
 
         if show_gt:
             imshow(make_grid(images), mean, std)
+        plt.close()
 
     def get_accuracy(self):
         
