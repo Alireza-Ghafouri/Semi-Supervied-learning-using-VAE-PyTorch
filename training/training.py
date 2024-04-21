@@ -17,7 +17,7 @@ class Trainer:
         self.epoch_losses = [np.nan]
         self.recon_images = None
 
-    def train(self, num_epochs, alpha, beta, gamma):
+    def train(self, num_epochs, vae_weight, cls_weight, cnt_weight):
         
         self.epoch_losses = [np.nan]
         self.net.to(self.device)
@@ -33,12 +33,12 @@ class Trainer:
                 # zero the parameter gradients
                 self.optimizer.zero_grad()
 
-                if beta==0 and gamma==0:    # VAE model
+                if cls_weight==0 and cnt_weight==0:    # VAE model
                     self.recon_images = self.net(inputs)
                     loss = self.net.loss(self.recon_images, inputs)
                 else:   # full model
                     self.recon_images, logits = self.net(inputs)
-                    loss = self.net.loss(self.recon_images, inputs, logits, labels, alpha, beta, gamma)
+                    loss = self.net.loss(self.recon_images, inputs, logits, labels, vae_weight, cls_weight, cnt_weight)
                 loss.backward()
                 self.optimizer.step()
 

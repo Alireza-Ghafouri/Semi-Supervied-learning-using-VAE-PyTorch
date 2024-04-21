@@ -74,9 +74,9 @@ vae_trainer = Trainer(net= vae,
                     )
 
 vae_trainer.train(num_epochs= config.learning.num_epochs,
-                  alpha= config.loss.alpha, 
-                  beta= config.loss.beta, 
-                  gamma= config.loss.gamma)
+                  vae_weight= config.loss.vae_term_weight, 
+                  cls_weight= config.loss.classification_term_weight, 
+                  cnt_weight= config.loss.contrastive_term_weight)
 
 # vae_trainer.save_loss_plot(PATH = os.path.join( config.paths.report_root,'test.png' ) )
 

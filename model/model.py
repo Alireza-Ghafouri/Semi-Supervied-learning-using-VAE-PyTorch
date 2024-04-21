@@ -126,9 +126,6 @@ class NET(nn.Module):
         self.vae = vae
         self.latent_mapper = latent_mapper
         self.classifier = nn.Linear(self.latent_mapper.z_dim, num_classes) 
-#         self.alpha = vae_loss_weight
-#         self.beta = classification_loss_weight
-#         self.gamma = contrastive_loss_weight
         
     def forward(self, x):
 #         mu, logvar = self.vae.encode(x)
@@ -138,12 +135,12 @@ class NET(nn.Module):
         logits  = self.classifier(z)
         return x_hat, logits
     
-    def loss(self, x_hat, x, logits, labels, alpha, beta, gamma):
+    def loss(self, x_hat, x, logits, labels, vae_weight, cls_weight, cnt_weight):
         
         vae_loss = self.vae.loss(x_hat, x)
-        if beta==0 and gamma==0:
-            return alpha * vae_loss
+        if cls_weight==0 and cnt_weight==0:
+            return vae_weight * vae_loss
         classification_loss = nn.CrossEntropyLoss()(logits, labels)
         contrastive_loss = self.latent_mapper.contrastive_loss(labels)            
 #         print(vae_loss , classification_loss, contrastive_loss)
-        return  alpha * vae_loss + beta * classification_loss + gamma * contrastive_loss
+        return  vae_weight * vae_loss + cls_weight * classification_loss + cnt_weight * contrastive_loss

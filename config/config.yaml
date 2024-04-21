@@ -8,9 +8,9 @@ learning:
 loss:
   reconstruction_term_weight: 1
   kl_term_weight: 1
-  alpha: 1
-  beta: 0
-  gamma: 0
+  vae_term_weight: 1
+  classification_term_weight: 0
+  contrastive_term_weight: 0
   contrastive_similarity: 'cosine'
   contrastive_margin: 1.0
 
