@@ -41,7 +41,11 @@ unlabeled_trainloader = DataLoader(dataset = unlabeled_trainset,
                                    batch_size = config.learning.batch_size, 
                                    shuffle = True)
 
-vae = VAE(z_dim = config.model.vae_latent_dim)
+vae = VAE(z_dim = config.model.vae_latent_dim,
+          rec_weight= config.loss.reconstruction_term_weight,
+          kl_weight= config.loss.kl_term_weight
+          )
+
 vae.to(device)
 
 
@@ -74,7 +78,7 @@ vae_trainer.train(num_epochs= config.learning.num_epochs,
                   beta= config.loss.beta, 
                   gamma= config.loss.gamma)
 
-vae_trainer.save_loss_plot(PATH = os.path.join( config.paths.report_root,'test.png' ) )
+# vae_trainer.save_loss_plot(PATH = os.path.join( config.paths.report_root,'test.png' ) )
 
 vae_trainer.show_rec_images(mean= full_trainset.mean,
                             std= full_trainset.std

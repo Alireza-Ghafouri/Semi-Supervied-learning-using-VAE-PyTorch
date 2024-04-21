@@ -5,10 +5,12 @@ import torch.nn.functional as F
 
 class VAE(nn.Module):
 
-    def __init__(self, z_dim):
+    def __init__(self, z_dim, rec_weight, kl_weight):
         super().__init__()
         self.encoder = ResNet18Enc(z_dim=z_dim)
         self.decoder = ResNet18Dec(z_dim=z_dim)
+        self.rec_weight = rec_weight
+        self.kl_weight = kl_weight
         
         # for the gaussian likelihood
         self.log_scale = nn.Parameter(torch.Tensor([0.0]))
@@ -66,7 +68,8 @@ class VAE(nn.Module):
 
         # elbo
         #print(kl,recon_loss)
-        elbo = (kl - recon_loss)
+        # elbo = (kl - recon_loss)
+        elbo = ( self.kl_weight * kl  -  self.rec_weight * recon_loss )
         elbo = elbo.mean()
         return elbo
     

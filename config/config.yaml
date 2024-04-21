@@ -1,11 +1,13 @@
 learning:
-  num_epochs: 1
+  num_epochs: 4
   batch_size: 16
   device: 'cuda:0'
   learning_rate: 0.001
   schd_gamma: 0.9 
 
 loss:
+  reconstruction_term_weight: 1
+  kl_term_weight: 1
   alpha: 1
   beta: 0
   gamma: 0
