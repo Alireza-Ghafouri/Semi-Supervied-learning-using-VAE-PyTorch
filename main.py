@@ -14,6 +14,8 @@ config = OmegaConf.load("config\config.yaml")
 
 os.makedirs(config.paths.weights_root, exist_ok = True)
 os.makedirs(config.paths.report_root, exist_ok = True)
+os.makedirs(config.paths.rec_results, exist_ok = True)
+
 
 device = torch.device(config.learning.device)
 # print('Training is on: ', device)
@@ -80,6 +82,8 @@ vae_trainer.train(num_epochs= config.learning.num_epochs,
 
 # vae_trainer.save_loss_plot(PATH = os.path.join( config.paths.report_root,'test.png' ) )
 
-vae_trainer.show_rec_images(mean= full_trainset.mean,
-                            std= full_trainset.std
+vae_trainer.save_rec_images(mean= full_trainset.mean,
+                            std= full_trainset.std,
+                            PATH=config.paths.rec_results,
+                            show_imgs=True
                             )

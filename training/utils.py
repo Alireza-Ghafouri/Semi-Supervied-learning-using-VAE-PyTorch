@@ -12,4 +12,4 @@ def imshow(img, mean, std):
     plt.imshow(np.transpose(npimg, (1, 2, 0)))
 
     # Display the image
-    plt.show()
+    # plt.show()

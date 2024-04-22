@@ -1,4 +1,5 @@
 import torch
+import os
 import numpy as np
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
@@ -74,16 +75,22 @@ class Trainer:
         print('Plot saved at: ',PATH)
         plt.close()
 
-    def show_rec_images(self, mean, std, show_gt=False):
+    def save_rec_images(self, mean, std, PATH, show_imgs=False):
         dataiter = iter(self.test_dataloader)
         images, labels = next(dataiter)
 
         self.net.to('cpu')
         rec_images = self.net(images)
-        imshow(make_grid(rec_images), mean, std)
 
-        if show_gt:
-            imshow(make_grid(images), mean, std)
+        imshow(make_grid(rec_images), mean, std)
+        plt.savefig( os.path.join( PATH,'reconstructed_images.png' ) )
+
+        if show_imgs:
+            plt.show()
+        
+        imshow(make_grid(images), mean, std)
+        plt.savefig( os.path.join( PATH,'input_images.png' ) )
+
         plt.close()
 
     def get_accuracy(self):
