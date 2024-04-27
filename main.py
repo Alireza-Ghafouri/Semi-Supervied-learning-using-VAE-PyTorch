@@ -67,7 +67,7 @@ optimizer = Adam(net.parameters())
 scheduler = ExponentialLR(optimizer = optimizer,
                           gamma = config.learning.schd_gamma)
 
-vae_trainer = Trainer(net= vae, 
+vae_trainer = Trainer(net= net, 
                       train_dataloader= labeled_trainloader, 
                       test_dataloader= testloader,
                       optimizer= optimizer, 
@@ -75,15 +75,18 @@ vae_trainer = Trainer(net= vae,
                       device= device
                     )
 
+vae_trainer.load_weights(path= os.path.join( config.paths.weights_root,'vae_net.pth' ), full_net= True)
 vae_trainer.train(num_epochs= config.learning.num_epochs,
                   vae_weight= config.loss.vae_term_weight, 
                   cls_weight= config.loss.classification_term_weight, 
                   cnt_weight= config.loss.contrastive_term_weight)
 
-# vae_trainer.save_loss_plot(PATH = os.path.join( config.paths.report_root,'test.png' ) )
+# vae_trainer.save_weights(path= os.path.join( config.paths.weights_root,'vae_net.pth' ) )
 
-vae_trainer.save_rec_images(mean= full_trainset.mean,
-                            std= full_trainset.std,
-                            PATH=config.paths.rec_results,
-                            show_imgs=True
-                            )
+# vae_trainer.save_loss_plot(path = os.path.join( config.paths.report_root,'test.png' ) )
+
+# vae_trainer.save_rec_images(mean= full_trainset.mean,
+#                             std= full_trainset.std,
+#                             path=config.paths.rec_results,
+#                             show_imgs=True
+#                             )

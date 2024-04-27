@@ -58,12 +58,18 @@ class Trainer:
         print()
         print('Training Finished...\n')
             
-        
-    def save_weights(self, PATH):
-        torch.save(self.net.state_dict(), PATH)
-        print('Model weights saved at: ', PATH)
+    def load_weights(self, path, full_net=True):
+        if full_net:
+            self.net.vae.load_state_dict(torch.load(path))
+        else:
+            self.net.load_state_dict(torch.load(path))
+        print('Weights loaded from: ', path, '\n')
 
-    def save_loss_plot(self, PATH):
+    def save_weights(self, path):
+        torch.save(self.net.state_dict(), path)
+        print('Model weights saved at: ', path)
+
+    def save_loss_plot(self, path):
         plt.figure(figsize=(16,6))
         plt.plot(self.epoch_losses,color='red')
         plt.xticks(np.arange(0, len(self.epoch_losses), step=1))
@@ -71,11 +77,11 @@ class Trainer:
         plt.xlabel('Epoch')
         plt.ylabel('Loss')
         plt.title('Epoch loss values during training')
-        plt.savefig(PATH)
-        print('Plot saved at: ',PATH)
+        plt.savefig(path)
+        print('Plot saved at: ',path)
         plt.close()
 
-    def save_rec_images(self, mean, std, PATH, show_imgs=False):
+    def save_rec_images(self, mean, std, path, show_imgs=False):
         dataiter = iter(self.test_dataloader)
         images, labels = next(dataiter)
 
@@ -83,13 +89,13 @@ class Trainer:
         rec_images = self.net(images)
 
         imshow(make_grid(rec_images), mean, std)
-        plt.savefig( os.path.join( PATH,'reconstructed_images.png' ) )
+        plt.savefig( os.path.join( path,'reconstructed_images.png' ) )
 
         if show_imgs:
             plt.show()
         
         imshow(make_grid(images), mean, std)
-        plt.savefig( os.path.join( PATH,'input_images.png' ) )
+        plt.savefig( os.path.join( path,'input_images.png' ) )
 
         plt.close()
 
