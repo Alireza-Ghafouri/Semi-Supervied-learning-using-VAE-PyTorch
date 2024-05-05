@@ -43,7 +43,9 @@ unlabeled_trainloader = DataLoader(dataset = unlabeled_trainset,
                                    batch_size = config.learning.batch_size, 
                                    shuffle = True)
 
-vae = VAE(z_dim = config.model.vae_latent_dim,
+vae = VAE(num_Blocks= config.model.ResNet_Blocks,
+          z_dim = config.model.vae_latent_dim,
+          in_channels= config.data.in_channels,
           rec_weight= config.loss.reconstruction_term_weight,
           kl_weight= config.loss.kl_term_weight
           )
@@ -51,31 +53,33 @@ vae = VAE(z_dim = config.model.vae_latent_dim,
 vae.to(device)
 
 
-latent_mapper = LatentMapper(y_dim = config.model.vae_latent_dim,
-                             z_dim = config.model.cls_latent_dim,
-                             hidden_dims = config.model.lm_hidden_dims,
-                             contrastive_margin = config.loss.contrastive_margin, 
-                             contrastive_similarity = config.loss.contrastive_similarity
-                             )
-latent_mapper.to(device)
+# latent_mapper = LatentMapper(y_dim = config.model.vae_latent_dim,
+#                              z_dim = config.model.cls_latent_dim,
+#                              hidden_dims = config.model.lm_hidden_dims,
+#                              contrastive_margin = config.loss.contrastive_margin, 
+#                              contrastive_similarity = config.loss.contrastive_similarity
+#                              )
+# latent_mapper.to(device)
 
 
-net = NET(vae, latent_mapper, num_classes=config.data.num_classes)
-net.to(device)
+# net = NET(vae, latent_mapper, num_classes=config.data.num_classes)
+# net.to(device)
 
-optimizer = Adam(net.parameters())
+optimizer = Adam(vae.parameters(),
+                 lr=config.learning.learning_rate
+                 )
+
 scheduler = ExponentialLR(optimizer = optimizer,
                           gamma = config.learning.schd_gamma)
 
-vae_trainer = Trainer(net= net, 
-                      train_dataloader= labeled_trainloader, 
+vae_trainer = Trainer(net= vae, 
+                      train_dataloader= full_trainloader, 
                       test_dataloader= testloader,
                       optimizer= optimizer, 
                       scheduler= scheduler, 
                       device= device
                     )
 
-vae_trainer.load_weights(path= os.path.join( config.paths.weights_root,'vae_net.pth' ), full_net= True)
 vae_trainer.train(num_epochs= config.learning.num_epochs,
                   vae_weight= config.loss.vae_term_weight, 
                   cls_weight= config.loss.classification_term_weight, 
@@ -87,6 +91,5 @@ vae_trainer.train(num_epochs= config.learning.num_epochs,
 
 # vae_trainer.save_rec_images(mean= full_trainset.mean,
 #                             std= full_trainset.std,
-#                             path=config.paths.rec_results,
-#                             show_imgs=True
+#                             path= config.paths.rec_results
 #                             )
