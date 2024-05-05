@@ -45,7 +45,11 @@ class BasicBlockEnc(nn.Module):
 
     def forward(self, x):
         out = torch.relu(self.bn1(self.conv1(x)))
+        # out = torch.relu(self.conv1(x))
+
         out = self.bn2(self.conv2(out))
+        # out = self.conv2(out)
+
         out += self.shortcut(x)
         out = torch.relu(out)
         return out
@@ -78,20 +82,24 @@ class BasicBlockDec(nn.Module):
 
     def forward(self, x):
         out = torch.relu(self.bn2(self.conv2(x)))
+        # out = torch.relu(self.conv2(x))
+
         out = self.bn1(self.conv1(out))
+        # out = self.conv1(out)
+
         out += self.shortcut(x)
         out = torch.relu(out)
         return out
     
 class ResNet18Enc(nn.Module):
 
-    def __init__(self, num_Blocks=[2,2,2,2], z_dim=10, nc=3):
+    def __init__(self, num_Blocks, z_dim, in_channels):
         super().__init__()
         self.in_planes = 64
         self.z_dim = z_dim
         
-        #self.conv1 = nn.Conv2d(nc, 64, kernel_size=3, stride=2, padding=1, bias=False)
-        self.conv1 = nn.Conv2d(nc, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=2, padding=1, bias=False)
+        # self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         
         self.bn1 = nn.BatchNorm2d(64)
         self.layer1 = self._make_layer(BasicBlockEnc, 64, num_Blocks[0], stride=1)
@@ -128,7 +136,7 @@ class ResNet18Enc(nn.Module):
     
 class ResNet18Dec(nn.Module):
 
-    def __init__(self, num_Blocks=[2,2,2,2], z_dim=10, nc=3):
+    def __init__(self, num_Blocks, z_dim, in_channels):
         super().__init__()
         self.in_planes = 512
 
@@ -138,8 +146,8 @@ class ResNet18Dec(nn.Module):
         self.layer3 = self._make_layer(BasicBlockDec, 128, num_Blocks[2], stride=2)
         self.layer2 = self._make_layer(BasicBlockDec, 64, num_Blocks[1], stride=2)
         self.layer1 = self._make_layer(BasicBlockDec, 64, num_Blocks[0], stride=1)
-        #self.conv1 = ResizeConv2d(64, nc, kernel_size=3, scale_factor=2)
-        self.conv1 = ResizeConv2d(64, nc, kernel_size=3, scale_factor=1)
+        self.conv1 = ResizeConv2d(64, in_channels, kernel_size=3, scale_factor=2)
+        # self.conv1 = ResizeConv2d(64, in_channels, kernel_size=3, scale_factor=1)
         
 
     def _make_layer(self, BasicBlockDec, planes, num_Blocks, stride):
@@ -160,7 +168,7 @@ class ResNet18Dec(nn.Module):
         x = self.layer1(x)
         x = torch.sigmoid(self.conv1(x))
         
-        #x = x.view(x.size(0), 3, 64, 64)
-        x = x.view(x.size(0), 3, 32, 32)
+        x = x.view(x.size(0), 3, 64, 64)
+        # x = x.view(x.size(0), 3, 32, 32)
 
         return x

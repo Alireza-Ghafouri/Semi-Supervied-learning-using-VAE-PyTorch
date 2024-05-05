@@ -5,10 +5,10 @@ import torch.nn.functional as F
 
 class VAE(nn.Module):
 
-    def __init__(self, z_dim, rec_weight, kl_weight):
+    def __init__(self, num_Blocks, z_dim, in_channels, rec_weight, kl_weight):
         super().__init__()
-        self.encoder = ResNet18Enc(z_dim=z_dim)
-        self.decoder = ResNet18Dec(z_dim=z_dim)
+        self.encoder = ResNet18Enc(num_Blocks, z_dim, in_channels)
+        self.decoder = ResNet18Dec(num_Blocks, z_dim, in_channels)
         self.rec_weight = rec_weight
         self.kl_weight = kl_weight
         
@@ -26,8 +26,8 @@ class VAE(nn.Module):
         std = torch.exp(self.logvar / 2)
         q = torch.distributions.Normal(self.mu, std)
         self.z = q.rsample()
-        
         x_recon = self.decoder(self.z)   
+        # x_recon = self.decoder(self.mu)   
         
         return x_recon
     
