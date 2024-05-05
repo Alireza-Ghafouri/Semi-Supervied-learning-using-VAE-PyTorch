@@ -2,6 +2,7 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 from torchvision.datasets import SVHN
+from torchvision.datasets import CIFAR10
 from torch.utils.data import Dataset
 
 
@@ -9,12 +10,14 @@ from torch.utils.data import Dataset
 class SVHNDataset(Dataset):
     def __init__(self, mode):
         super(SVHNDataset, self).__init__()
-        self.data = SVHN(
-                        root='./data',
-                        split=mode,
-                        download=True)
+        # self.data = SVHN(
+        #                 root='./data',
+        #                 split=mode,
+        #                 download=True)
+        self.data = trainset = CIFAR10(root='./data', train=True, download=True)
         self.calculate_mean_std()
         self.transform = transforms.Compose([
+            transforms.Resize(64),  # Resize images to 64x64
             transforms.ToTensor(),
             transforms.Normalize(mean=self.mean, std=self.std)
         ])
