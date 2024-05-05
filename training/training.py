@@ -47,23 +47,23 @@ class Trainer:
                 running_loss += loss.item() 
                 epoch_loss += loss.item() 
 
-                if i % 1000 == 999:    # print every 1000 mini-batches
-                    print(f'[{epoch + 1}, {i + 1:5d}] running loss: {running_loss / 1000:.1f}')
+                if i % 100 == 99:    # print every 100 mini-batches
+                    print(f'[{epoch + 1}, {i + 1:5d}] running loss: {running_loss / 100:.1f}')
                     running_loss = 0.0
             epoch_loss /= len(self.train_dataloader) * self.train_dataloader.batch_size
             self.epoch_losses.append(epoch_loss) 
             print(f'Epoch {epoch + 1} loss: {epoch_loss:.3f}')
             self.scheduler.step()
+            self.save_rec_images(mean=self.train_dataloader.dataset.mean,
+                                 std=self.train_dataloader.dataset.mean,
+                                 path='./reconstruction_samples',
+                                 filename=str(epoch+1)+'.png'
+                                 )
+            self.net.to(self.device)
 
         print()
         print('Training Finished...\n')
             
-    def load_weights(self, path, full_net=True):
-        if full_net:
-            self.net.vae.load_state_dict(torch.load(path))
-        else:
-            self.net.load_state_dict(torch.load(path))
-        print('Weights loaded from: ', path, '\n')
 
     def save_weights(self, path):
         torch.save(self.net.state_dict(), path)
@@ -81,21 +81,24 @@ class Trainer:
         print('Plot saved at: ',path)
         plt.close()
 
-    def save_rec_images(self, mean, std, path, show_imgs=False):
-        dataiter = iter(self.test_dataloader)
+    def save_rec_images(self, mean, std, path, filename='reconstructed_images.png', show_imgs=False):
+        torch.manual_seed(42)
+
+        dataiter = iter(self.train_dataloader)
         images, labels = next(dataiter)
 
         self.net.to('cpu')
+        self.net.eval()
         rec_images = self.net(images)
 
-        imshow(make_grid(rec_images), mean, std)
-        plt.savefig( os.path.join( path,'reconstructed_images.png' ) )
+        imshow(make_grid(rec_images[:100]), mean, std)
+        plt.savefig( os.path.join( path,filename ) )
 
         if show_imgs:
             plt.show()
         
-        imshow(make_grid(images), mean, std)
-        plt.savefig( os.path.join( path,'input_images.png' ) )
+        imshow(make_grid(images[:100]), mean, std)
+        plt.savefig( os.path.join( path,'input_images.png' ) ) #Do just once
 
         plt.close()
 
