@@ -1,7 +1,7 @@
 import torch
 import os
 from omegaconf import OmegaConf
-from model.model import VAE, LatentMapper, NET
+from model.model import DCVAE, LatentMapper, NET
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
 from training.training import Trainer
@@ -43,11 +43,12 @@ unlabeled_trainloader = DataLoader(dataset = unlabeled_trainset,
                                    batch_size = config.learning.batch_size, 
                                    shuffle = True)
 
-vae = VAE(num_Blocks= config.model.ResNet_Blocks,
-          z_dim = config.model.vae_latent_dim,
-          in_channels= config.data.in_channels,
-          rec_weight= config.loss.reconstruction_term_weight,
-          kl_weight= config.loss.kl_term_weight
+vae = DCVAE(image_channels= config.data.in_channels,
+            image_size= config.data.image_dim,
+            hidden_size= config.model.vae_hidden_dim,
+            latent_size= config.model.vae_latent_dim,
+            rec_weight= config.loss.reconstruction_term_weight,
+            kl_weight= config.loss.kl_term_weight
           )
 
 vae.to(device)

@@ -35,8 +35,8 @@ class Trainer:
                 self.optimizer.zero_grad()
 
                 if cls_weight==0 and cnt_weight==0:    # VAE model
-                    self.recon_images = self.net(inputs)
-                    loss = self.net.loss(self.recon_images, inputs)
+                    reconstructed_image, mean, log_var = self.net(inputs)
+                    loss= self.net.loss(reconstructed_image, inputs, mean, log_var)
                 else:   # full model
                     self.recon_images, logits = self.net(inputs)
                     loss = self.net.loss(self.recon_images, inputs, logits, labels, vae_weight, cls_weight, cnt_weight)
@@ -89,9 +89,9 @@ class Trainer:
 
         self.net.to('cpu')
         self.net.eval()
-        rec_images = self.net(images)
+        rec_images, _, _ = self.net(images) # ???
 
-        imshow(make_grid(rec_images[:100]), mean, std)
+        imshow(make_grid(rec_images[:100]), mean, std) # ???
         plt.savefig( os.path.join( path,filename ) )
 
         if show_imgs:
