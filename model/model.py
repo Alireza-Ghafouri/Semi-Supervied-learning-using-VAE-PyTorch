@@ -1,83 +1,66 @@
 import torch
 from torch import nn
-from .utils import ResNet18Enc,ResNet18Dec
+from .utils import Flatten, UnFlatten
 import torch.nn.functional as F
 
-class VAE(nn.Module):
+class DCVAE(nn.Module):
+    def __init__(self, image_channels, image_size, hidden_size, latent_size, rec_weight, kl_weight):
+        super(DCVAE, self).__init__()
+        # self.image_channels= image_channels
+        # self.image_size= image_size
+        # self.hidden_size= hidden_size
+        # self.latent_size= latent_size
 
-    def __init__(self, num_Blocks, z_dim, in_channels, rec_weight, kl_weight):
-        super().__init__()
-        self.encoder = ResNet18Enc(num_Blocks, z_dim, in_channels)
-        self.decoder = ResNet18Dec(num_Blocks, z_dim, in_channels)
         self.rec_weight = rec_weight
         self.kl_weight = kl_weight
-        
-        # for the gaussian likelihood
-        self.log_scale = nn.Parameter(torch.Tensor([0.0]))
-        self.mu = None
-        self.logvar = None
-        self.z = None
+
+
+        self.encoder = nn.Sequential(
+            nn.Conv2d(image_channels, 32, 4, 2),
+            nn.LeakyReLU(0.2),
+            nn.Conv2d(32, 64, 4, 2),
+            nn.LeakyReLU(0.2),
+            nn.Conv2d(64, 128, 4, 2),
+            nn.LeakyReLU(0.2),
+            nn.Conv2d(128, 256, 4, 2),
+            nn.LeakyReLU(0.2),
+            Flatten(),
+        )
+        self.encoder_mean = nn.Linear(hidden_size, latent_size)
+        self.encoder_logvar = nn.Linear(hidden_size, latent_size)
+        self.fc = nn.Linear(latent_size, hidden_size)
+        self.decoder = nn.Sequential(
+            UnFlatten(),
+            nn.ConvTranspose2d(hidden_size, 128, 5, 2),
+            nn.ReLU(),
+            nn.ConvTranspose2d(128, 64, 5, 2),
+            nn.ReLU(),
+            nn.ConvTranspose2d(64, 32, 6, 2),
+            nn.ReLU(),
+            nn.ConvTranspose2d(32, image_channels, 6, 2),
+            nn.Sigmoid(),
+        )
+
+    def sample(self, log_var, mean):
+        std = torch.exp(0.5 * log_var)
+        eps = torch.randn_like(std)
+        return eps.mul(std).add_(mean)
 
     def forward(self, x):
-        self.mu, self.logvar = self.encoder(x)
-        #z = self.reparameterize(mean, logvar)
+        x = self.encoder(x)
+        log_var = self.encoder_logvar(x)
+        mean = self.encoder_mean(x)
+        z = self.sample(log_var, mean)
+        x = self.fc(z)
+        x = self.decoder(x)
 
-        # sample z from q
-        std = torch.exp(self.logvar / 2)
-        q = torch.distributions.Normal(self.mu, std)
-        self.z = q.rsample()
-        x_recon = self.decoder(self.z)   
-        # x_recon = self.decoder(self.mu)   
-        
-        return x_recon
+        return x, mean, log_var
     
-    def gaussian_likelihood(self, x_hat, x, logscale):
-        scale = torch.exp(logscale)
-        mean = x_hat
-        dist = torch.distributions.Normal(mean, scale)
-
-        # measure prob of seeing image under p(x|z)
-        log_pxz = dist.log_prob(x)
-        return log_pxz.sum(dim=(1, 2, 3))
-    
-    def kl_divergence(self, z, mu, std):
-        # --------------------------
-        # Monte carlo KL divergence
-        # --------------------------
-        # 1. define the first two probabilities (in this case Normal for both)
-        p = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
-        q = torch.distributions.Normal(mu, std)
-
-        # 2. get the probabilities from the equation
-        log_qzx = q.log_prob(z)
-        log_pz = p.log_prob(z)
-
-        # kl
-        kl = (log_qzx - log_pz)
-        kl = kl.sum(-1)
-        return kl
-    
-    def loss(self, x_hat, x):
-        
-        # reconstruction loss
-        recon_loss = self.gaussian_likelihood(x_hat, x, self.log_scale)
-
-        # kl
-        std = torch.exp(self.logvar / 2)
-        kl = self.kl_divergence(self.z, self.mu, std)
-
-        # elbo
-        #print(kl,recon_loss)
-        # elbo = (kl - recon_loss)
-        elbo = ( self.kl_weight * kl  -  self.rec_weight * recon_loss )
-        elbo = elbo.mean()
-        return elbo
-    
-    @staticmethod
-    def reparameterize(mean, logvar):
-        std = torch.exp(logvar / 2) # in log-space, squareroot is divide by two
-        epsilon = torch.randn_like(std)
-        return epsilon * std + mean
+    def loss(self, reconstructed_image, images, mean, log_var):
+        CE = F.binary_cross_entropy(reconstructed_image, images, reduction="sum")
+        KLD = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
+        loss = self.rec_weight * CE + self.kl_weight* KLD
+        return loss
 
 
 class LatentMapper(nn.Module):
@@ -130,7 +113,7 @@ class NET(nn.Module):
     def forward(self, x):
 #         mu, logvar = self.vae.encode(x)
 #         y = self.vae.reparameterize(mu, logvar)
-        x_hat = self.vae(x)
+        x_hat, _, _ = self.vae(x)
         z = self.latent_mapper(self.vae.z)
         logits  = self.classifier(z)
         return x_hat, logits
