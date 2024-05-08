@@ -97,10 +97,10 @@ class Trainer:
         rec_images = self.net(images)[0]
 
         if filename <= 1:
-            imshow(make_grid(images[:40]), dataloader.dataset.mean, dataloader.dataset.std)
+            imshow(make_grid(images[:40]))
             plt.savefig( os.path.join( path, mode + '_input_images.png' ) )
 
-        imshow(make_grid(rec_images[:40]), dataloader.dataset.mean, dataloader.dataset.std)
+        imshow(make_grid(rec_images[:40]) )
         plt.savefig( os.path.join( path, mode + str(filename) + '.png' ) )
 
         if show_imgs:

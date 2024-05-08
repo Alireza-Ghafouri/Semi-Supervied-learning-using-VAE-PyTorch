@@ -1,9 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def imshow(img, mean, std):
+def imshow(img, 
+        #    mean, 
+        #    std,
+           ):
+
     # Unnormalize the images
-    img = img * std[:, None, None] + mean[:, None, None]
+    # img = img * std[:, None, None] + mean[:, None, None]
 
     # Convert torch tensor to numpy array
     npimg = img.numpy()

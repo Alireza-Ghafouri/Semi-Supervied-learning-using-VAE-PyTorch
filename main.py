@@ -5,7 +5,7 @@ from model.model import DCVAE, LatentMapper, NET
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
 from training.training import Trainer
-from dataloader.dataset import SVHNDataset
+from dataloader.dataset import SVHNDataset, CIFAR10Dataset
 from dataloader.utils import split_data
 from torch.utils.data import DataLoader
 
@@ -20,8 +20,11 @@ os.makedirs(config.paths.rec_results, exist_ok = True)
 device = torch.device(config.learning.device)
 # print('Training is on: ', device)
 
-full_trainset = SVHNDataset(mode='train')
-testset = SVHNDataset(mode='test')
+# full_trainset = SVHNDataset(mode='train')
+# testset = SVHNDataset(mode='test')
+
+full_trainset= CIFAR10Dataset(is_train= True)
+testset = CIFAR10Dataset(is_train= False)
 
 labeled_trainset, unlabeled_trainset = split_data(full_trainset = full_trainset,
                                                   labeled_ratio = config.data.labeled_ratio)
@@ -92,4 +95,4 @@ vae_trainer.train(num_epochs= config.learning.num_epochs,
 
 # vae_trainer.save_loss_plot(path = os.path.join( config.paths.report_root,'test.png' ) )
 
-vae_trainer.save_rec_images(path= config.paths.rec_results, filename= 0, mode='test')
+# vae_trainer.save_rec_images(path= config.paths.rec_results, filename= 0, mode='test')
