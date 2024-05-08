@@ -18,7 +18,7 @@ class Trainer:
         self.epoch_losses = [np.nan]
         self.recon_images = None
 
-    def train(self, num_epochs, vae_weight, cls_weight, cnt_weight):
+    def train(self, num_epochs, vae_weight, cls_weight, cnt_weight, save_rec_path=None):
         
         self.epoch_losses = [np.nan]
         self.net.to(self.device)
@@ -54,16 +54,13 @@ class Trainer:
             self.epoch_losses.append(epoch_loss) 
             print(f'Epoch {epoch + 1} loss: {epoch_loss:.3f}')
             self.scheduler.step()
-            self.save_rec_images(mean=self.train_dataloader.dataset.mean,
-                                 std=self.train_dataloader.dataset.mean,
-                                 path='./reconstruction_samples',
-                                 filename=str(epoch+1)+'.png'
-                                 )
-            self.net.to(self.device)
+            if save_rec_path is not None:
+                self.save_rec_images(path= save_rec_path, filename= epoch+1, mode='train')
+                self.save_rec_images(path= save_rec_path, filename= epoch+1, mode='test' )
+                self.net.to(self.device)
 
         print()
         print('Training Finished...\n')
-            
 
     def save_weights(self, path):
         torch.save(self.net.state_dict(), path)
@@ -81,25 +78,34 @@ class Trainer:
         print('Plot saved at: ',path)
         plt.close()
 
-    def save_rec_images(self, mean, std, path, filename='reconstructed_images.png', show_imgs=False):
+    def save_rec_images(self, path, filename, mode, show_imgs=False):
+        
         torch.manual_seed(42)
 
-        dataiter = iter(self.train_dataloader)
+        if mode=='train':
+            dataloader= self.train_dataloader
+        elif mode=='test':
+            dataloader= self.test_dataloader
+        else:
+            raise NotImplementedError("Wrong mode selected!")
+
+        dataiter = iter(dataloader)
         images, labels = next(dataiter)
 
         self.net.to('cpu')
         self.net.eval()
-        rec_images, _, _ = self.net(images) # ???
+        rec_images = self.net(images)[0]
 
-        imshow(make_grid(rec_images[:100]), mean, std) # ???
-        plt.savefig( os.path.join( path,filename ) )
+        if filename <= 1:
+            imshow(make_grid(images[:40]), dataloader.dataset.mean, dataloader.dataset.std)
+            plt.savefig( os.path.join( path, mode + '_input_images.png' ) )
+
+        imshow(make_grid(rec_images[:40]), dataloader.dataset.mean, dataloader.dataset.std)
+        plt.savefig( os.path.join( path, mode + str(filename) + '.png' ) )
 
         if show_imgs:
             plt.show()
         
-        imshow(make_grid(images[:100]), mean, std)
-        plt.savefig( os.path.join( path,'input_images.png' ) ) #Do just once
-
         plt.close()
 
     def get_accuracy(self):

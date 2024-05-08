@@ -84,13 +84,12 @@ vae_trainer = Trainer(net= vae,
 vae_trainer.train(num_epochs= config.learning.num_epochs,
                   vae_weight= config.loss.vae_term_weight, 
                   cls_weight= config.loss.classification_term_weight, 
-                  cnt_weight= config.loss.contrastive_term_weight)
+                  cnt_weight= config.loss.contrastive_term_weight,
+                  save_rec_path= config.paths.rec_results,
+                  )
 
 # vae_trainer.save_weights(path= os.path.join( config.paths.weights_root,'vae_net.pth' ) )
 
 # vae_trainer.save_loss_plot(path = os.path.join( config.paths.report_root,'test.png' ) )
 
-# vae_trainer.save_rec_images(mean= full_trainset.mean,
-#                             std= full_trainset.std,
-#                             path= config.paths.rec_results
-#                             )
+vae_trainer.save_rec_images(path= config.paths.rec_results, filename= 0, mode='test')
