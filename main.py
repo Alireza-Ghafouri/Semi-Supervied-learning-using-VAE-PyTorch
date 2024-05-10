@@ -20,11 +20,11 @@ os.makedirs(config.paths.rec_results, exist_ok = True)
 device = torch.device(config.learning.device)
 # print('Training is on: ', device)
 
-# full_trainset = SVHNDataset(mode='train')
-# testset = SVHNDataset(mode='test')
+full_trainset = SVHNDataset(mode='train')
+testset = SVHNDataset(mode='test')
 
-full_trainset= CIFAR10Dataset(is_train= True)
-testset = CIFAR10Dataset(is_train= False)
+# full_trainset= CIFAR10Dataset(is_train= True)
+# testset = CIFAR10Dataset(is_train= False)
 
 labeled_trainset, unlabeled_trainset = split_data(full_trainset = full_trainset,
                                                   labeled_ratio = config.data.labeled_ratio)
@@ -57,26 +57,26 @@ vae = DCVAE(image_channels= config.data.in_channels,
 vae.to(device)
 
 
-# latent_mapper = LatentMapper(y_dim = config.model.vae_latent_dim,
-#                              z_dim = config.model.cls_latent_dim,
-#                              hidden_dims = config.model.lm_hidden_dims,
-#                              contrastive_margin = config.loss.contrastive_margin, 
-#                              contrastive_similarity = config.loss.contrastive_similarity
-#                              )
-# latent_mapper.to(device)
+latent_mapper = LatentMapper(y_dim = config.model.vae_latent_dim,
+                             z_dim = config.model.cls_latent_dim,
+                             hidden_dims = config.model.lm_hidden_dims,
+                             contrastive_margin = config.loss.contrastive_margin, 
+                             contrastive_similarity = config.loss.contrastive_similarity
+                             )
+latent_mapper.to(device)
 
 
-# net = NET(vae, latent_mapper, num_classes=config.data.num_classes)
-# net.to(device)
+net = NET(vae, latent_mapper, num_classes=config.data.num_classes)
+net.to(device)
 
-optimizer = Adam(vae.parameters(),
+optimizer = Adam(net.parameters(),
                  lr=config.learning.learning_rate
                  )
 
 scheduler = ExponentialLR(optimizer = optimizer,
                           gamma = config.learning.schd_gamma)
 
-vae_trainer = Trainer(net= vae, 
+net_trainer = Trainer(net= net, 
                       train_dataloader= full_trainloader, 
                       test_dataloader= testloader,
                       optimizer= optimizer, 
@@ -84,7 +84,7 @@ vae_trainer = Trainer(net= vae,
                       device= device
                     )
 
-vae_trainer.train(num_epochs= config.learning.num_epochs,
+net_trainer.train(num_epochs= config.learning.num_epochs,
                   vae_weight= config.loss.vae_term_weight, 
                   cls_weight= config.loss.classification_term_weight, 
                   cnt_weight= config.loss.contrastive_term_weight,

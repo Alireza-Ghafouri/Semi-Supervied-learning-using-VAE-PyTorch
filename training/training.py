@@ -16,7 +16,6 @@ class Trainer:
         self.scheduler = scheduler
         self.device = device
         self.epoch_losses = [np.nan]
-        self.recon_images = None
 
     def train(self, num_epochs, vae_weight, cls_weight, cnt_weight, save_rec_path=None):
         
@@ -38,8 +37,8 @@ class Trainer:
                     reconstructed_image, mean, log_var = self.net(inputs)
                     loss= self.net.loss(reconstructed_image, inputs, mean, log_var)
                 else:   # full model
-                    self.recon_images, logits = self.net(inputs)
-                    loss = self.net.loss(self.recon_images, inputs, logits, labels, vae_weight, cls_weight, cnt_weight)
+                    recon_images, mean, log_var, logits = self.net(inputs)
+                    loss = self.net.loss(recon_images, inputs, mean, log_var, logits, labels, vae_weight, cls_weight, cnt_weight)
                 loss.backward()
                 self.optimizer.step()
 

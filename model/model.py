@@ -6,14 +6,9 @@ import torch.nn.functional as F
 class DCVAE(nn.Module):
     def __init__(self, image_channels, image_size, hidden_size, latent_size, rec_weight, kl_weight):
         super(DCVAE, self).__init__()
-        # self.image_channels= image_channels
-        # self.image_size= image_size
-        # self.hidden_size= hidden_size
-        # self.latent_size= latent_size
 
         self.rec_weight = rec_weight
         self.kl_weight = kl_weight
-
 
         self.encoder = nn.Sequential(
             nn.Conv2d(image_channels, 32, 4, 2),
@@ -111,16 +106,16 @@ class NET(nn.Module):
         self.classifier = nn.Linear(self.latent_mapper.z_dim, num_classes) 
         
     def forward(self, x):
-#         mu, logvar = self.vae.encode(x)
-#         y = self.vae.reparameterize(mu, logvar)
-        x_hat, _, _ = self.vae(x)
-        z = self.latent_mapper(self.vae.z)
+        x_hat, mean, log_var = self.vae(x)
+        y = self.vae.sample(log_var, mean)
+        # x = self.vae.fc(y)
+        z = self.latent_mapper(y)
         logits  = self.classifier(z)
-        return x_hat, logits
+        return x_hat, mean, log_var, logits
     
-    def loss(self, x_hat, x, logits, labels, vae_weight, cls_weight, cnt_weight):
+    def loss(self, x_hat, x, mean, log_var, logits, labels, vae_weight, cls_weight, cnt_weight):
         
-        vae_loss = self.vae.loss(x_hat, x)
+        vae_loss = self.vae.loss(x_hat, x, mean, log_var)
         if cls_weight==0 and cnt_weight==0:
             return vae_weight * vae_loss
         classification_loss = nn.CrossEntropyLoss()(logits, labels)
