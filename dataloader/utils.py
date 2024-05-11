@@ -3,6 +3,8 @@ from torch.utils.data import Subset
 
 def split_data(full_trainset, labeled_ratio):
 
+    np.random.seed(42)
+
     # Split the dataset into labeled and unlabeled subsets based on the defined ratio
     num_labeled = int(len(full_trainset) * labeled_ratio)
     indices = np.arange(len(full_trainset))

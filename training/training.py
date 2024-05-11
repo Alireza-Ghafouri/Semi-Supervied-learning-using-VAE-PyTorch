@@ -108,10 +108,11 @@ class Trainer:
         plt.close()
 
     def get_accuracy(self):
-        
+
+        torch.manual_seed(42)
+
         correct = 0
         total = 0
-        
         self.net.to(self.device)
         self.net.eval()
         # since we're not training, we don't need to calculate the gradients for our outputs
@@ -120,12 +121,12 @@ class Trainer:
                 images = images.to(self.device)
                 labels = labels.to(self.device)
                 # calculate outputs by running images through the network
-                _, logits = self.net(images)
+                logits = self.net(images)[-1]
                 # the class with the highest energy is what we choose as prediction
                 _, predicted = torch.max(logits, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
 
-        print(f'Accuracy of the network on the {len(self.test_dataloader)} test images: {100 * correct // total} %')
+        print(f'Accuracy of the network on the {total} test images: {100 * correct // total} %')
 
 

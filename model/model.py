@@ -54,6 +54,7 @@ class DCVAE(nn.Module):
     def loss(self, reconstructed_image, images, mean, log_var):
         CE = F.binary_cross_entropy(reconstructed_image, images, reduction="sum")
         KLD = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
+        # print('CE Loss', CE , "KL Loss:", KLD)
         loss = self.rec_weight * CE + self.kl_weight* KLD
         return loss
 
@@ -120,5 +121,5 @@ class NET(nn.Module):
             return vae_weight * vae_loss
         classification_loss = nn.CrossEntropyLoss()(logits, labels)
         contrastive_loss = self.latent_mapper.contrastive_loss(labels)            
-#         print(vae_loss , classification_loss, contrastive_loss)
+        # print('VAE LOSS: ',vae_loss ,'\nCLS LOSS: ', classification_loss,'\nCNT LOSS: ', contrastive_loss)
         return  vae_weight * vae_loss + cls_weight * classification_loss + cnt_weight * contrastive_loss
