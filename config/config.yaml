@@ -1,10 +1,17 @@
 learning:
-  vae_num_epochs: 20
-  net_num_epochs: 50
+
+  vae:
+    num_epochs: 25
+    learning_rate: 0.001
+    schd_gamma: 0.99
+
+  net:
+    num_epochs: 50
+    learning_rate: 0.001
+    schd_gamma: 0.9
+
   batch_size: 256
   device: 'cuda:0'
-  learning_rate: 0.001
-  schd_gamma: 0.9
 
 loss:
   reconstruction_term_weight: 1
