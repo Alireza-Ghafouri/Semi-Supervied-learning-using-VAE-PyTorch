@@ -34,8 +34,8 @@ class Trainer:
                 self.optimizer.zero_grad()
 
                 if cls_weight==0 and cnt_weight==0:    # VAE model
-                    reconstructed_image, mean, log_var = self.net(inputs)
-                    loss= self.net.loss(reconstructed_image, inputs, mean, log_var)
+                    reconstructed_images, mean, log_var = self.net(inputs)
+                    loss= self.net.loss(reconstructed_images, inputs, mean, log_var)
                 else:   # full model
                     recon_images, mean, log_var, logits = self.net(inputs)
                     loss = self.net.loss(recon_images, inputs, mean, log_var, logits, labels, vae_weight, cls_weight, cnt_weight)
@@ -47,11 +47,12 @@ class Trainer:
                 epoch_loss += loss.item() 
 
                 if i % 100 == 99:    # print every 100 mini-batches
-                    print(f'[{epoch + 1}, {i + 1:5d}] running loss: {running_loss / 100:.1f}')
+                    print(f'[{epoch + 1}, {i + 1:5d}] running loss: {running_loss / 100:.3f}')
                     running_loss = 0.0
-            epoch_loss /= len(self.train_dataloader) * self.train_dataloader.batch_size
+            epoch_loss /= len(self.train_dataloader)
+
             self.epoch_losses.append(epoch_loss) 
-            print(f'Epoch {epoch + 1} loss: {epoch_loss:.3f}')
+            print(f'Epoch {epoch + 1} loss: {epoch_loss:.5f}')
             self.scheduler.step()
             if save_rec_path is not None:
                 self.save_rec_images(path= save_rec_path, filename= epoch+1, mode='train')
