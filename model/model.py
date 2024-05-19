@@ -51,13 +51,12 @@ class DCVAE(nn.Module):
 
         return x, mean, log_var
     
-    def loss(self, reconstructed_image, images, mean, log_var):
-        CE = F.binary_cross_entropy(reconstructed_image, images, reduction="sum")
-        KLD = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
-        # print('CE Loss', CE , "KL Loss:", KLD)
-        loss = self.rec_weight * CE + self.kl_weight* KLD
-        return loss
-
+    def loss(self, reconstructed_images, images, mean, log_var):
+        ce = F.binary_cross_entropy(reconstructed_images, images, reduction="sum")
+        kld = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
+        loss = self.rec_weight * ce + self.kl_weight* kld
+        num_pixels = images.size(0) * images.size(1) * images.size(2) * images.size(3)
+        return loss / num_pixels
 
 class LatentMapper(nn.Module):
     def __init__(self, y_dim, z_dim, hidden_dims, contrastive_margin, contrastive_similarity):
