@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -17,3 +18,19 @@ def imshow(img,
 
     # Display the image
     # plt.show()
+
+def apply_transformations(data, transforms_list):
+    aug_labels= []
+    aug_indexes= []
+    aug_images = []
+    images, labels, indexes = data
+    for i, image in enumerate(images):
+        for transform in transforms_list:
+            aug_images.append(transform(image))
+            aug_labels.append(labels[i])
+            aug_indexes.append(indexes[i])
+
+    images = torch.stack(aug_images)
+    labels = torch.tensor(aug_labels)
+    indexes = torch.tensor(aug_indexes)
+    return images, labels, indexes
