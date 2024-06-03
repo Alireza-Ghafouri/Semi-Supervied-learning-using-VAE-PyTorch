@@ -59,7 +59,7 @@ class DCVAE(nn.Module):
         return loss / num_pixels
 
 class LatentMapper(nn.Module):
-    def __init__(self, y_dim, z_dim, hidden_dims, contrastive_margin, contrastive_similarity):
+    def __init__(self, y_dim, z_dim, hidden_dims, contrastive_temperature):
         super(LatentMapper, self).__init__()
         layers = []
         input_dim = y_dim
@@ -71,32 +71,37 @@ class LatentMapper(nn.Module):
         self.fc_layers = nn.Sequential(*layers)
         self.z_dim = z_dim
         self.z = torch.tensor([])
-        self.margin = contrastive_margin
-        self.similarity = contrastive_similarity
+        self.temperature = contrastive_temperature
         
     def forward(self, y):
         self.z = self.fc_layers(y)
         return self.z
+    
+    def contrastive_loss(self, embeddings, indexes):
+        """
+        embeddings: Tensor of shape [batch_size * num_augmentations, embedding_dim]
+        num_augmentations: Number of augmentations per image
+        temperature: Temperature scaling factor
+        """
+        # batch_size = embeddings.size(0) // num_augmentations
+        embeddings = F.normalize(embeddings, dim=1).to('cpu')
+        
+        # Compute similarity matrix
+        similarity_matrix = torch.mm(embeddings, embeddings.t()) / self.temperature
+        similarity_matrix.to('cpu')
+        # Create labels
+        # labels = torch.arange(batch_size).repeat_interleave(num_augmentations).to(embeddings.device)
 
-    def contrastive_loss(self, labels):
-        # Compute pairwise similarity matrix
-        if self.similarity == 'cosine':
-            similarity_matrix = F.cosine_similarity(self.z.unsqueeze(1), self.z.unsqueeze(0), dim=-1)
-        else:
-            raise NotImplementedError("Other similarity metrics not implemented yet")
-
-        # Create mask for positive and negative pairs
-        mask = torch.eq(labels.unsqueeze(1), labels.unsqueeze(0)).float()
-        mask.fill_diagonal_(0)  # Exclude diagonal elements (self-similarity)
-
-        # Compute contrastive loss
-        positive_pairs = similarity_matrix * mask
-        negative_pairs = similarity_matrix * (1 - mask)
-#         print('SIMILARITY MATRIX:\n',similarity_matrix)
-#         print('MASK\n',mask)
-        loss_contrastive = torch.mean((1 - positive_pairs) + torch.clamp(negative_pairs - self.margin, min=0))
-
-        return loss_contrastive
+        # Create mask to ignore self-similarity
+        mask = torch.eye(indexes.shape[0], dtype=torch.bool).to('cpu')
+        indexes = (indexes.unsqueeze(0) == indexes.unsqueeze(1)).float().to('cpu')
+        indexes = indexes * ~mask  # Zero out the diagonal
+        indexes = indexes / indexes.sum(dim=1, keepdim=True)  # Normalize
+        
+        # Compute cross-entropy loss
+        loss = F.cross_entropy(similarity_matrix, indexes, reduction='sum') / (embeddings.size(0))
+        
+        return loss
     
 class NET(nn.Module):
     def __init__(self, vae, latent_mapper, num_classes):
@@ -111,14 +116,12 @@ class NET(nn.Module):
         # x = self.vae.fc(y)
         z = self.latent_mapper(y)
         logits  = self.classifier(z)
-        return x_hat, mean, log_var, logits
+        return x_hat, mean, log_var, z, logits
     
-    def loss(self, x_hat, x, mean, log_var, logits, labels, vae_weight, cls_weight, cnt_weight):
+    def loss(self, x_hat, x, mean, log_var, logits, labels, embeddings, indexes, vae_weight, cls_weight, cnt_weight):
+
+        vae_loss = self.vae.loss(x_hat, x, mean, log_var) if vae_weight!=0 else 0
+        contrastive_loss = self.latent_mapper.contrastive_loss(embeddings=embeddings, indexes=indexes) if cnt_weight!=0 else 0      
+        classification_loss = nn.CrossEntropyLoss()(logits, labels) if cls_weight!=0 else 0
         
-        vae_loss = self.vae.loss(x_hat, x, mean, log_var)
-        if cls_weight==0 and cnt_weight==0:
-            return vae_weight * vae_loss
-        classification_loss = nn.CrossEntropyLoss()(logits, labels)
-        contrastive_loss = self.latent_mapper.contrastive_loss(labels)            
-        # print('VAE LOSS: ',vae_loss ,'\nCLS LOSS: ', classification_loss,'\nCNT LOSS: ', contrastive_loss)
         return  vae_weight * vae_loss + cls_weight * classification_loss + cnt_weight * contrastive_loss
