@@ -4,7 +4,7 @@ import numpy as np
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 from torchvision.utils import make_grid
-from .utils import imshow
+from .utils import imshow, apply_transformations
 
 class Trainer:
     def __init__(self, net, train_dataloader, test_dataloader, optimizer, scheduler, device):
@@ -17,7 +17,7 @@ class Trainer:
         self.device = device
         self.epoch_losses = [np.nan]
 
-    def train(self, num_epochs, vae_weight, cls_weight, cnt_weight, save_rec_path=None):
+    def train(self, num_epochs, vae_weight, cls_weight, cnt_weight, transforms, save_rec_path=None):
         
         self.epoch_losses = [np.nan]
         self.net.to(self.device)
@@ -27,8 +27,10 @@ class Trainer:
             epoch_loss=0.0
             for i, data in tqdm(enumerate(self.train_dataloader, 0), desc="Training Progress"):
                 
-                # get the inputs; data is a list of [inputs, labels]
-                inputs, labels = data[0].to(self.device), data[1].to(self.device)
+                inputs, labels, indexes = apply_transformations(data, transforms_list= transforms)
+                inputs= inputs.to(self.device)
+                labels= labels.to(self.device)
+                indexes= indexes.to(self.device)
 
                 # zero the parameter gradients
                 self.optimizer.zero_grad()
@@ -37,8 +39,8 @@ class Trainer:
                     reconstructed_images, mean, log_var = self.net(inputs)
                     loss= self.net.loss(reconstructed_images, inputs, mean, log_var)
                 else:   # full model
-                    recon_images, mean, log_var, logits = self.net(inputs)
-                    loss = self.net.loss(recon_images, inputs, mean, log_var, logits, labels, vae_weight, cls_weight, cnt_weight)
+                    recon_images, mean, log_var, z, logits = self.net(inputs)
+                    loss = self.net.loss(recon_images, inputs, mean, log_var, logits, labels, z, indexes, vae_weight, cls_weight, cnt_weight)
                 loss.backward()
                 self.optimizer.step()
 
@@ -52,7 +54,7 @@ class Trainer:
             epoch_loss /= len(self.train_dataloader)
 
             self.epoch_losses.append(epoch_loss) 
-            print(f'Epoch {epoch + 1} loss: {epoch_loss:.5f}')
+            print(f'Epoch {epoch + 1}/{num_epochs} loss: {epoch_loss:.5f}')
             self.scheduler.step()
             if save_rec_path is not None:
                 self.save_rec_images(path= save_rec_path, filename= epoch+1, mode='train')
@@ -97,7 +99,8 @@ class Trainer:
         rec_images = self.net(images)[0]
 
         if filename <= 1:
-            imshow(make_grid(images[:40]))
+            sample = images[:40]
+            imshow(make_grid(sample))
             plt.savefig( os.path.join( path, mode + '_input_images.png' ) )
 
         imshow(make_grid(rec_images[:40]) )
@@ -118,7 +121,7 @@ class Trainer:
         self.net.eval()
         # since we're not training, we don't need to calculate the gradients for our outputs
         with torch.no_grad():
-            for images, labels in tqdm(self.test_dataloader,desc='Testing Progress'):
+            for images, labels, _ in tqdm(self.test_dataloader,desc='Testing Progress'):
                 images = images.to(self.device)
                 labels = labels.to(self.device)
                 # calculate outputs by running images through the network
@@ -128,6 +131,6 @@ class Trainer:
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
 
-        print(f'Accuracy of the network on the {total} test images: {100 * correct // total} %')
+        print(f'Accuracy of the network: {correct} / {total} = {round(100 * correct / total,2)} %')
 
 
