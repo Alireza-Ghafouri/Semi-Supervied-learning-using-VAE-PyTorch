@@ -2,6 +2,7 @@ import numpy as np
 from torch.utils.data import Subset
 import torch
 from tqdm.auto import tqdm
+from training.utils import apply_transformations
 
 def split_data(full_trainset, labeled_ratio):
 
@@ -21,25 +22,27 @@ def split_data(full_trainset, labeled_ratio):
 
     return labeled_trainset, unlabeled_trainset
 
-def create_pseudo_labeled_dataset(net, unlabeled_trainloader, mannual_dataset, device):
+def create_pseudo_labeled_dataset(net, unlabeled_trainloader, mannual_dataset, device, transforms):
     pseudo_labeled_images = []
     pseudo_labels = []
 
     net.eval()
     with torch.no_grad():
-        for images, _ in tqdm(unlabeled_trainloader, desc="Pseudo Labelling"):
-            images = images.to(device)
+        for data in tqdm(unlabeled_trainloader, desc="Pseudo Labelling"):
+            
+            copy_images, _, _ = data
+            images, _, _ = apply_transformations(data, transforms_list= transforms)
+
+            images= images.to(device)
             
             logits = net(images)[-1]
             predicted_labels = torch.argmax(logits, 1)
             
-            pseudo_labeled_images.extend(images)
+            pseudo_labeled_images.extend(copy_images)
             pseudo_labels.extend(predicted_labels.tolist())
 
     # Convert pseudo-labels to int
     pseudo_labels = [int(label) for label in pseudo_labels]
-    pseudo_labeled_images = [sample.to('cpu') for sample in pseudo_labeled_images]
-
 
     # Create pseudo-labeled dataset
     pseudo_labeled_trainset = mannual_dataset(pseudo_labeled_images, pseudo_labels)
