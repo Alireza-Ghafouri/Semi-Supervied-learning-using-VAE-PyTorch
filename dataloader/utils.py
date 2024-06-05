@@ -48,3 +48,9 @@ def create_pseudo_labeled_dataset(net, unlabeled_trainloader, mannual_dataset, d
     pseudo_labeled_trainset = mannual_dataset(pseudo_labeled_images, pseudo_labels)
 
     return pseudo_labeled_trainset
+
+def selective_collate(batch):
+    original_images, labels, indexes = zip(*batch)
+    # labels = torch.tensor(labels)
+    # indexes = torch.tensor(indexes)
+    return  original_images, labels, indexes
