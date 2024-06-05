@@ -5,8 +5,8 @@ from model.model import DCVAE, LatentMapper, NET
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
 from training.training import Trainer
-from dataloader.dataset import SVHNDataset, CIFAR10Dataset, MyDataset
-from dataloader.utils import split_data, create_pseudo_labeled_dataset
+from dataloader.datasets import SVHNDataset, CIFAR10Dataset, MyDataset
+from dataloader.utils import split_data, create_pseudo_labeled_dataset, selective_collate
 from torch.utils.data import DataLoader
 from torch.utils.data import ConcatDataset
 
@@ -22,7 +22,7 @@ device = torch.device(config.learning.device)
 # print('Training is on: ', device)
 
 full_trainset = SVHNDataset(mode='train')
-testset = SVHNDataset(mode='test')
+testset = SVHNDataset(mode='test', transform= svhn_transform_base)
 
 # full_trainset= CIFAR10Dataset(is_train= True)
 # testset = CIFAR10Dataset(is_train= False)
@@ -30,22 +30,28 @@ testset = SVHNDataset(mode='test')
 labeled_trainset, unlabeled_trainset = split_data(full_trainset = full_trainset,
                                                   labeled_ratio = config.data.labeled_ratio)
 
-
 testloader = DataLoader(dataset = testset, 
                         batch_size = config.learning.batch_size, 
-                        shuffle = True)
+                        shuffle = True,
+                        )
 
 full_trainloader = DataLoader(dataset = full_trainset, 
                               batch_size = config.learning.batch_size, 
-                              shuffle = True)
+                              shuffle = False,
+                              collate_fn= selective_collate,
+                              )
 
 labeled_trainloader = DataLoader(dataset = labeled_trainset,
                                  batch_size = config.learning.batch_size, 
-                                 shuffle = True)
+                                 shuffle = True,
+                                 collate_fn= selective_collate,
+                                 )
 
 unlabeled_trainloader = DataLoader(dataset = unlabeled_trainset, 
                                    batch_size = config.learning.batch_size, 
-                                   shuffle = True)
+                                   shuffle = True,
+                                   collate_fn= selective_collate,
+                                   )
 
 #`````````````````````````````````````Phase 1: Train/Load VAE:````````````````````````````````````` 
 
