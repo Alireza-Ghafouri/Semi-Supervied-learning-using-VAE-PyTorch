@@ -5,13 +5,24 @@ learning:
     learning_rate: 0.001
     schd_gamma: 0.99
 
+  latent_mapper:
+    num_epochs: 15
+    learning_rate: 0.01
+    schd_gamma: 0.9
+
+  classifier:
+    num_epochs: 40
+    learning_rate: 0.001
+    schd_gamma: 0.99
+
   net:
-    num_epochs: 50
+    num_epochs: 30
     learning_rate: 0.001
     schd_gamma: 0.9
 
   batch_size: 256
   device: 'cuda:0'
+  pseudo_labelling_confidence_threshold: 0.8
 
 loss:
   reconstruction_term_weight: 1
@@ -46,4 +57,3 @@ paths:
 # test_data_path: ./data/CIFAR10/train/
 # load_saved_model: False
 # ckpt_load_path: False
-
