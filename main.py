@@ -9,7 +9,7 @@ from dataloader.datasets import SVHNDataset, CIFAR10Dataset, MyDataset
 from dataloader.utils import split_data, create_pseudo_labeled_dataset, selective_collate
 from torch.utils.data import DataLoader
 from torch.utils.data import ConcatDataset
-
+from dataloader.transforms import svhn_transform_base, svhn_transform_1, svhn_transform_2, svhn_transform_3, svhn_transform_4, svhn_transform_5
 
 config = OmegaConf.load(os.path.join('config' , 'config.yaml'))
 
@@ -26,6 +26,8 @@ testset = SVHNDataset(mode='test', transform= svhn_transform_base)
 
 # full_trainset= CIFAR10Dataset(is_train= True)
 # testset = CIFAR10Dataset(is_train= False)
+
+svhn_transforms=[svhn_transform_base, svhn_transform_1, svhn_transform_2, svhn_transform_3, svhn_transform_4, svhn_transform_5]
 
 labeled_trainset, unlabeled_trainset = split_data(full_trainset = full_trainset,
                                                   labeled_ratio = config.data.labeled_ratio)
@@ -90,21 +92,54 @@ vae.to(device)
 # vae_trainer.save_loss_plot(path = os.path.join( config.paths.report_root,'vae_svhn.png' ) )
 
 vae.load_state_dict(torch.load(os.path.join( config.paths.weights_root,'vae_svhn.pth' )))
-print("vae weights loaded...\n")
+print("\n VAE weights loaded...\n")
 
- 
-#``````````````````Phase 2: train the whole network with labeled samples:```````````````````````` 
+
+#`````````````````````````````````````Phase 2: Train/Load Block2:````````````````````````````````````` 
 
 latent_mapper = LatentMapper(y_dim = config.model.vae_latent_dim,
                              z_dim = config.model.cls_latent_dim,
                              hidden_dims = config.model.lm_hidden_dims,
-                             contrastive_margin = config.loss.contrastive_margin, 
-                             contrastive_similarity = config.loss.contrastive_similarity
+                             contrastive_temperature= config.loss.contrastive_temperature
                              )
 latent_mapper.to(device)
 
+# for param in vae.parameters():
+#     param.requires_grad = False
 
-net = NET(vae, latent_mapper, num_classes=config.data.num_classes)
+net_init = NET(vae, latent_mapper, num_classes=config.data.num_classes)
+net_init.to(device)
+
+for param in net_init.vae.parameters():
+    param.requires_grad = False
+
+# latent_mapper_optimizer = Adam(net_init.parameters(),
+#                                lr=config.learning.latent_mapper.learning_rate)
+
+# latent_mapper_scheduler = ExponentialLR(optimizer = latent_mapper_optimizer,
+#                                         gamma = config.learning.latent_mapper.schd_gamma)
+
+# latent_mapper_trainer = Trainer(net= net_init, 
+#                                 train_dataloader= full_trainloader, 
+#                                 test_dataloader= testloader,
+#                                 optimizer= latent_mapper_optimizer, 
+#                                 scheduler= latent_mapper_scheduler, 
+#                                 device= device
+#                                 )
+
+# latent_mapper_trainer.train(num_epochs= config.learning.latent_mapper.num_epochs,
+#                             vae_weight= 0, 
+#                             cls_weight= 0, 
+#                             cnt_weight= 1,
+#                             transforms= svhn_transforms,
+#                             )
+
+# latent_mapper_trainer.save_weights(path= os.path.join( config.paths.weights_root,'VAE_latent_mapper_svhn.pth' ) )
+# latent_mapper_trainer.save_loss_plot(path = os.path.join( config.paths.report_root,'VAE_latent_mapper_svhn.png' ) )
+ 
+#``````````````````````````````````Phase 3: Train/Load Classifier:```````````````````````````````` 
+
+net= NET(vae, latent_mapper, num_classes=config.data.num_classes)
 net.to(device)
 
 net_optimizer = Adam(net.parameters(),
