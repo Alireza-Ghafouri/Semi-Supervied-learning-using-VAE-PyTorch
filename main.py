@@ -142,39 +142,63 @@ for param in net_init.vae.parameters():
 net= NET(vae, latent_mapper, num_classes=config.data.num_classes)
 net.to(device)
 
-net_optimizer = Adam(net.parameters(),
-                    lr=config.learning.net.learning_rate
-                 )
+net.load_state_dict(torch.load(os.path.join( config.paths.weights_root,'VAE_latent_mapper_svhn.pth' )))
+print("VAE & Latent Mapper weights loaded...\n")
 
-net_scheduler = ExponentialLR(optimizer = net_optimizer,
-                              gamma = config.learning.net.schd_gamma)
+# for param in net.parameters():
+#     param.requires_grad = True
 
-net_trainer = Trainer(net= net, 
-                      train_dataloader= labeled_trainloader, 
-                      test_dataloader= testloader,
-                      optimizer= net_optimizer, 
-                      scheduler= net_scheduler, 
-                      device= device
-                    )
+# net_optimizer = Adam(net.parameters(),
+#                      lr=config.learning.classifier.learning_rate
+#                     )
 
-net_trainer.train(num_epochs= config.learning.net.num_epochs,
-                  vae_weight= config.loss.vae_term_weight, 
-                  cls_weight= config.loss.classification_term_weight, 
-                  cnt_weight= config.loss.contrastive_term_weight,
-                  )
+# net_scheduler = ExponentialLR(optimizer = net_optimizer,
+#                               gamma = config.learning.classifier.schd_gamma)
 
-net_trainer.save_weights(path= os.path.join( config.paths.weights_root,'svhn_net_labeled.pth' ))
-net_trainer.get_accuracy()
+# net_trainer = Trainer(net= net, 
+#                       train_dataloader= labeled_trainloader, 
+#                       test_dataloader= testloader,
+#                       optimizer= net_optimizer, 
+#                       scheduler= net_scheduler, 
+#                       device= device
+#                     )
 
-# net_trainer.save_loss_plot(path = os.path.join( config.paths.report_root,'step2_try1.png' ) )
+# label_ratio=1:
+# net_trainer = Trainer(net= net, 
+#                       train_dataloader= full_trainloader, 
+#                       test_dataloader= testloader,
+#                       optimizer= net_optimizer, 
+#                       scheduler= net_scheduler, 
+#                       device= device
+#                     )
 
+
+svhn_transforms_short=[svhn_transform_base, svhn_transform_1, svhn_transform_2]
+# net_trainer.train(num_epochs= config.learning.classifier.num_epochs,
+#                   vae_weight= config.loss.vae_term_weight, 
+#                   cls_weight= config.loss.classification_term_weight, 
+#                   cnt_weight= config.loss.contrastive_term_weight,
+#                   transforms= svhn_transforms_short,
+#                   )
+
+# net_trainer.save_weights(path= os.path.join( config.paths.weights_root,'classifier_net_svhn.pth' ))
+# net_trainer.save_weights(path= os.path.join( config.paths.weights_root,'classifier_net_svhn_full_labeled.pth' ))
+# net_trainer.get_accuracy() 
+
+# net_trainer.save_loss_plot(path = os.path.join( config.paths.report_root,'Classifier_svhn.png' ) )
+# net_trainer.save_loss_plot(path = os.path.join( config.paths.report_root,'Classifier_svhn_full_labeled.png' ) )
  
-#```````````````````````````````Phase 3: labelling unlabeled data:```````````````````````````````` 
+#```````````````````````````````Phase 4: labelling unlabeled data:```````````````````````````````` 
+
+net.load_state_dict(torch.load(os.path.join( config.paths.weights_root,'classifier_net_svhn.pth' )))
+print("Fine-tuned net weights loaded...\n")
 
 pseudo_labeled_trainset = create_pseudo_labeled_dataset(net= net,
                                                         unlabeled_trainloader= unlabeled_trainloader,
                                                         mannual_dataset= MyDataset,
-                                                        device= device
+                                                        device= device,
+                                                        transforms= [svhn_transform_base],
+                                                        confidence_threshold= config.learning.pseudo_labelling_confidence_threshold,
                                                         )
 
 # Combine labeled and pseudo-labeled datasets
@@ -183,34 +207,39 @@ combined_trainset = ConcatDataset([labeled_trainset, pseudo_labeled_trainset])
 # Create DataLoader for combined dataset
 combined_trainloader = DataLoader(dataset = combined_trainset, 
                                   batch_size = config.learning.batch_size, 
-                                  shuffle = True
+                                  shuffle = True,
+                                  collate_fn= selective_collate,
                                   )
 
-net2 = NET(vae, latent_mapper, num_classes=config.data.num_classes)
-net2.to(device)
-net2.load_state_dict(torch.load(os.path.join( config.paths.weights_root,'svhn_net_labeled.pth' )))
+# net2 = NET(vae, latent_mapper, num_classes=config.data.num_classes)
+# net2.to(device)
+# net2.load_state_dict(torch.load(os.path.join( config.paths.weights_root,'svhn_net_labeled.pth' )))
 
 
-net2_optimizer = Adam(net2.parameters(),
-                      lr=config.learning.net.learning_rate
-                      )
+for param in net.parameters():
+    param.requires_grad = True
 
-net2_scheduler = ExponentialLR(optimizer = net2_optimizer,
-                                gamma = config.learning.net.schd_gamma)
+net_optimizer = Adam(net.parameters(),
+                     lr=config.learning.net.learning_rate
+                     )
+
+net_scheduler = ExponentialLR(optimizer = net_optimizer,
+                              gamma = config.learning.net.schd_gamma)
 
 
-net_trainer2 = Trainer(net= net2, 
+net_trainer = Trainer(net= net, 
                        train_dataloader= combined_trainloader, 
                        test_dataloader= testloader,
-                       optimizer= net2_optimizer, 
-                       scheduler= net2_scheduler, 
+                       optimizer= net_optimizer, 
+                       scheduler= net_scheduler, 
                        device= device,
                       )
 
-net_trainer2.train(num_epochs= 30,
+net_trainer.train(num_epochs= config.learning.net.num_epochs,
                    vae_weight= config.loss.vae_term_weight, 
                    cls_weight= config.loss.classification_term_weight, 
                    cnt_weight= config.loss.contrastive_term_weight,
+                   transforms= svhn_transforms_short,
                    )
 
-net_trainer2.get_accuracy()
+net_trainer.get_accuracy() 
