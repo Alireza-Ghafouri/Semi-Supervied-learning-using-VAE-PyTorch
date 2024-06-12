@@ -30,7 +30,9 @@ testset = SVHNDataset(mode='test', transform= svhn_transform_base)
 svhn_transforms=[svhn_transform_base, svhn_transform_1, svhn_transform_2, svhn_transform_3, svhn_transform_4, svhn_transform_5]
 
 labeled_trainset, unlabeled_trainset = split_data(full_trainset = full_trainset,
-                                                  labeled_ratio = config.data.labeled_ratio)
+                                                  num_labeled = config.data.num_labeled,
+                                                  num_classes = config.data.num_classes,
+                                                  fold=0)
 
 testloader = DataLoader(dataset = testset, 
                         batch_size = config.learning.batch_size, 

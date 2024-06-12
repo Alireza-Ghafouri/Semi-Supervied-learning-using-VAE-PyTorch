@@ -5,20 +5,42 @@ import torch.nn.functional as F
 from tqdm.auto import tqdm
 from training.utils import apply_transformations
 
-def split_data(full_trainset, labeled_ratio):
+def split_data(full_trainset, num_labeled, num_classes, fold):
+    np.random.seed(42)  # For reproducibility
 
-    np.random.seed(42)
+    # Get indices of samples for each class
+    class_indices = [[] for _ in range(num_classes)]
+    for idx in range(len(full_trainset)):
+        _, label, _ = full_trainset[idx]
+        class_indices[label].append(idx)
 
-    # Split the dataset into labeled and unlabeled subsets based on the defined ratio
-    num_labeled = int(len(full_trainset) * labeled_ratio)
-    indices = np.arange(len(full_trainset))
-    np.random.shuffle(indices)
+    # Shuffle the indices within each class
+    for class_idx in range(num_classes):
+        np.random.shuffle(class_indices[class_idx])
 
-    labeled_indices = indices[:num_labeled]
-    unlabeled_indices = indices[num_labeled:]
+    # Calculate the number of samples per class for the labeled subset
+    num_labeled_per_class = num_labeled // num_classes
 
-    # Create labeled and unlabeled datasets
+    # Select labeled indices
+    labeled_indices = []
+    for class_idx in range(num_classes):
+        start_idx = fold * num_labeled_per_class
+        end_idx = start_idx + num_labeled_per_class
+        labeled_indices.extend(class_indices[class_idx][start_idx:end_idx])
+
+    # Ensure the labeled_indices are sorted for consistency
+    labeled_indices = sorted(labeled_indices)
+    
+    # Create the labeled subset
     labeled_trainset = Subset(full_trainset, labeled_indices)
+    
+    # Create the unlabeled subset by excluding the labeled indices
+    all_indices = set(range(len(full_trainset)))
+    unlabeled_indices = list(all_indices - set(labeled_indices))
+    
+    # Ensure the unlabeled_indices are sorted for consistency
+    unlabeled_indices = sorted(unlabeled_indices)
+    
     unlabeled_trainset = Subset(full_trainset, unlabeled_indices)
 
     return labeled_trainset, unlabeled_trainset
