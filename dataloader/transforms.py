@@ -1,6 +1,6 @@
 from torchvision.transforms import Compose, RandomAffine, Grayscale, ToTensor, Normalize, Resize, ColorJitter
 from torchvision.transforms import RandomApply, RandomRotation, RandomResizedCrop, RandomPerspective
-
+from torchvision.transforms import AutoAugment, AutoAugmentPolicy
 # SVHN
 svhn_transform_base= Compose([
             Resize(64),
@@ -44,6 +44,12 @@ svhn_transform_5 = Compose([
     ToTensor(),
     # Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
+
+svhn_transform_auto= Compose([
+            Resize(64), 
+            AutoAugment(policy=AutoAugmentPolicy.SVHN),  # Apply AutoAugment
+            ToTensor(),
+        ])
 
 
 # CIFAR10
