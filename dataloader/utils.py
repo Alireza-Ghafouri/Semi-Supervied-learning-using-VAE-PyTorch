@@ -48,37 +48,43 @@ def split_data(full_trainset, num_labeled, num_classes, fold):
 def create_pseudo_labeled_dataset(net, unlabeled_trainloader, mannual_dataset, device, transforms, confidence_threshold):
     pseudo_labeled_images = []
     pseudo_labels = []
+    total_pseudo_labeled = 0
+    correct_pseudo_labeled = 0
 
     net.eval()
     with torch.no_grad():
         for data in tqdm(unlabeled_trainloader, desc="Pseudo Labelling"):
             
-            copy_images, _, _ = data
-            images, _, _ = apply_transformations(data, transforms_list= transforms)
+            copy_images, true_labels, _ = data  
+            images, _, _ = apply_transformations(data, transforms_list=transforms)
 
-            images= images.to(device)
+            images = images.to(device)
             
             logits = net(images)[-1]
-            # predicted_labels = torch.argmax(logits, 1)
-            
-            # pseudo_labeled_images.extend(copy_images)
-            # pseudo_labels.extend(predicted_labels.tolist())
-
             probabilities = F.softmax(logits, dim=1)
             max_probs, predicted_labels = torch.max(probabilities, dim=1)
             
-            for img, label, prob in zip(copy_images, predicted_labels, max_probs):
+            for img, true_label, predicted_label, prob in zip(copy_images, true_labels, predicted_labels, max_probs):
                 if prob >= confidence_threshold:
                     pseudo_labeled_images.append(img)
-                    pseudo_labels.append(int(label))
+                    pseudo_labels.append(int(predicted_label))
+                    total_pseudo_labeled += 1
+                    if predicted_label == true_label:
+                        correct_pseudo_labeled += 1
 
-    # Convert pseudo-labels to int
-    # pseudo_labels = [int(label) for label in pseudo_labels]
+    # Calculate accuracy of pseudo labeling
+    if total_pseudo_labeled > 0:
+        pseudo_label_accuracy = 100 * correct_pseudo_labeled / total_pseudo_labeled
+    else:
+        pseudo_label_accuracy = 0
 
     # Create pseudo-labeled dataset
     pseudo_labeled_trainset = mannual_dataset(pseudo_labeled_images, pseudo_labels)
-    print(f'\n %{round( 100 * len(pseudo_labeled_trainset) / len(unlabeled_trainloader.dataset) , 1)} of unlabeled samples pseudo labeled!\n')
+    print(f'\n{round(100 * len(pseudo_labeled_trainset) / len(unlabeled_trainloader.dataset), 1)}% of unlabeled samples pseudo labeled!')
+    print(f'Pseudo labeling accuracy: {pseudo_label_accuracy:.2f}%')
+
     return pseudo_labeled_trainset
+
 
 def selective_collate(batch):
     original_images, labels, indexes = zip(*batch)
