@@ -77,21 +77,16 @@ class LatentMapper(nn.Module):
         self.z = self.fc_layers(y)
         return self.z
     
-    def contrastive_loss(self, embeddings, indexes):
+    def unsupervised_contrastive_loss(self, embeddings, indexes):
         """
         embeddings: Tensor of shape [batch_size * num_augmentations, embedding_dim]
-        num_augmentations: Number of augmentations per image
-        temperature: Temperature scaling factor
         """
-        # batch_size = embeddings.size(0) // num_augmentations
         embeddings = F.normalize(embeddings, dim=1).to('cpu')
         
         # Compute similarity matrix
         similarity_matrix = torch.mm(embeddings, embeddings.t()) / self.temperature
         similarity_matrix.to('cpu')
-        # Create labels
-        # labels = torch.arange(batch_size).repeat_interleave(num_augmentations).to(embeddings.device)
-
+       
         # Create mask to ignore self-similarity
         mask = torch.eye(indexes.shape[0], dtype=torch.bool).to('cpu')
         indexes = (indexes.unsqueeze(0) == indexes.unsqueeze(1)).float().to('cpu')
