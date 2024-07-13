@@ -98,6 +98,25 @@ class LatentMapper(nn.Module):
         
         return loss
     
+    def supervised_contrastive_loss(self, embeddings, labels):
+        
+        embeddings = F.normalize(embeddings, dim=1).to('cpu')
+        
+        # Compute similarity matrix
+        similarity_matrix = torch.mm(embeddings, embeddings.t()) / self.temperature
+        similarity_matrix.to('cpu')
+        
+        # Create mask to ignore self-similarity
+        mask = torch.eye(labels.shape[0], dtype=torch.bool).to('cpu')
+        labels = (labels.unsqueeze(0) == labels.unsqueeze(1)).float().to('cpu')
+        labels = labels * ~mask  # Zero out the diagonal
+        labels = labels / labels.sum(dim=1, keepdim=True)  # Normalize
+        
+        # Compute cross-entropy loss
+        loss = F.cross_entropy(similarity_matrix, labels, reduction='sum') / (embeddings.size(0))
+        
+        return loss
+    
 class NET(nn.Module):
     def __init__(self, vae, latent_mapper, num_classes):
         super(NET, self).__init__()
@@ -116,7 +135,8 @@ class NET(nn.Module):
     def loss(self, x_hat, x, mean, log_var, logits, labels, embeddings, indexes, vae_weight, cls_weight, cnt_weight):
 
         vae_loss = self.vae.loss(x_hat, x, mean, log_var) if vae_weight!=0 else 0
-        contrastive_loss = self.latent_mapper.contrastive_loss(embeddings=embeddings, indexes=indexes) if cnt_weight!=0 else 0      
+        # contrastive_loss = self.latent_mapper.unsupervised_contrastive_loss(embeddings=embeddings, indexes=indexes) if cnt_weight!=0 else 0      
+        contrastive_loss = self.latent_mapper.supervised_contrastive_loss(embeddings=embeddings, labels=labels) if cnt_weight!=0 else 0      
         classification_loss = nn.CrossEntropyLoss()(logits, labels) if cls_weight!=0 else 0
         
         return  vae_weight * vae_loss + cls_weight * classification_loss + cnt_weight * contrastive_loss
