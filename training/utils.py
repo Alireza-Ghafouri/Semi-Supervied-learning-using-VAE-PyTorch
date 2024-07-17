@@ -34,3 +34,9 @@ def apply_transformations(data, transforms_list):
     labels = torch.tensor(aug_labels)
     indexes = torch.tensor(aug_indexes)
     return images, labels, indexes
+
+def linear_threshold_scheduler(start, end, num_phases, phase):
+    return start + (end - start) * (phase / num_phases)
+
+def exponential_threshold_scheduler(start, end, num_phases, phase):
+    return start * ((end / start) ** (phase / num_phases))
